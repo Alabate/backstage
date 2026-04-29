@@ -1,0 +1,65 @@
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  name: gitlab-repo-push-demo
+  title: Test GitLab repo push
+  description:
+    Minimal template that runs `gitlab:repo:push` against an existing GitLab
+    project. Configure `integrations.gitlab` for your host (see app-config
+    comments) and use a repo URL in the same host form.
+spec:
+  owner: backstage/techdocs-core
+  type: service
+
+  parameters:
+    - title: Target repository
+      required:
+        - repoUrl
+        - branchName
+      properties:
+        repoUrl:
+          title: Repository (repo URL picker format)
+          type: string
+          description: >
+            Same format as RepoUrlPicker, e.g.
+            `gitlab.com?repo=my-repo&owner=my-group` or
+            `gitlab.example.com?repo=my-repo&owner=my-group` for self-managed.
+            The host must match an entry under `integrations.gitlab`.
+        branchName:
+          title: Branch name
+          type: string
+          description: >
+            Branch to push to; created from the project default branch if it
+            does not exist yet (requires API permission).
+          default: scaffolder-gitlab-push-demo
+    - title: Content
+      required:
+        - content
+      properties:
+        content:
+          title: Content
+          type: string
+          description: Content to push to the repository
+          default: "Hello, world!"
+
+  steps:
+    - id: fetch-base
+      name: Fetch Base
+      action: fetch:template
+      input:
+        url: ./template
+        values:
+          content: ${{ parameters.content }}
+    - id: push
+      name: Push to GitLab
+      action: gitlab:repo:push
+      input:
+        repoUrl: ${{ parameters.repoUrl }}
+        branchName: ${{ parameters.branchName }}
+        commitMessage: 'chore: scaffolder gitlab:repo:push demo for ${{ parameters.name }}'
+
+  output:
+    text:
+      - title: Result
+        content: |
+          Pushed commit `${{ steps['push'].output.commitHash }}` to GitLab project `${{ steps['push'].output.projectPath }}`.
